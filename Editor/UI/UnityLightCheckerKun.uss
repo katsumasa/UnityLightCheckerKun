@@ -1,0 +1,6 @@
+Label {
+    white-space: normal;
+}
+
+Foldout {
+}

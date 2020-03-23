@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <uie:ToolbarButton text="Check" style="align-items: auto; margin-left: 0; margin-right: 0; margin-top: 0; -unity-text-align: upper-center; width: 64px; border-left-width: 1px; border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px; height: auto; min-height: 18px;">
+        <Style src="UnityLightCheckerKun.uss" />
+    </uie:ToolbarButton>
+    <ui:Label text="チェックするSceneを開いてCheckボタンを押して下さい。" style="margin-right: 0; margin-left: 0; margin-top: 0; border-left-width: 1px; border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px;">
+        <Style src="UnityLightCheckerKun.uss" />
+    </ui:Label>
+    <uie:ToolbarBreadcrumbs style="height: 7px; width: 445px;">
+        <Style src="UnityLightCheckerKun.uss" />
+    </uie:ToolbarBreadcrumbs>
+    <ui:ScrollView show-vertical-scroller="false" style="height: auto; width: auto;">
+        <Style src="UnityLightCheckerKun.uss" />
+    </ui:ScrollView>
+</ui:UXML>
