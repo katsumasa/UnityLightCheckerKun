@@ -137,6 +137,7 @@ namespace UTJ
 
             foldout.value |= LightingEnviromentSkyboxMaterial(foldout);
             foldout.value |= LightingEnviromentSunSource(foldout);
+            foldout.value |= LightingEnviromentEnviromentLighting(foldout);
             foldout.value |= LightingEnviromentEnviromentReflections(foldout);
             
             return foldout.value;
@@ -359,7 +360,7 @@ namespace UTJ
                     var label = new Label();
                     foldout.Add(label);
                     label.text = "Reflection Probeの解像度は一般的に低解像度で十分であると言われています。";
-                    label.text = "目安としてPCで512,コンソールで256、モバイルではそれ以下です。";
+                    label.text += "\n目安としてPCで512,コンソールで256、モバイルではそれ以下です。";
                 }
             }
             else 
@@ -688,13 +689,21 @@ namespace UTJ
         {
             var so = getLightmapSettings();
             var foldout = new Foldout();
-            foldout.text = "Directional Mode : " + LightmapEditorSettings.lightmapper;
+            foldout.text = "Lightmapper : ";
             foldout.Query<Toggle>().AtIndex(0).style.marginLeft = 0;
             foldout.value = false;
             parent.Add(foldout);
 
+
+            if(LightmapEditorSettings.lightmapper == LightmapEditorSettings.Lightmapper.ProgressiveCPU)
+            {
+                foldout.text += LightmapEditorSettings.Lightmapper.ProgressiveCPU;
+            } 
+            else
             if (LightmapEditorSettings.lightmapper == LightmapEditorSettings.Lightmapper.ProgressiveGPU)
             {
+                foldout.text += LightmapEditorSettings.Lightmapper.ProgressiveGPU;
+
                 var label = new Label();
                 label.text = "[警告]:ProgressiveGPUが選択されています。";
                 label.style.color = Color.yellow;
@@ -791,7 +800,6 @@ namespace UTJ
                 label.text += "Scene View > Shading menu > Realtime GI > UV Charts からどのように影響を及ぼしているか確認することが出来ます";
                 label.text += "\n";
                 foldout.Add(label);
-
                 foldout.value = true;
             }
             return foldout.value;
@@ -911,6 +919,10 @@ namespace UTJ
                 label = new Label();
                 label.text = "テクスチャの枚数が多くなる程、実行時のオーバーヘッドが大きくなります。\n";
                 label.text += "Textureに隙間が出ない範囲で可能な限り少ない枚数のTextureになるようにパラメータを調整して下さい。";
+                label.text += "\n - Lightmap Resolutionで全体的な解像度を調整する";
+                label.text += "\n - Lightmap Paddingで余計な隙間が出来ている場合は調整する";
+                label.text += "\n - Mesh Renderer->Lightmapping->Scale in Lightmapでオブジェクト毎に個別に階層度を調整する";
+                label.text += "\n - 小さい・カメラから遠い場所におかれている等、重要ではないオブジェクトはLightProbeを使用する";
                 lightnapSizeFoldOut.Add(label);
                 lightnapSizeFoldOut.value = true;
             }
@@ -961,14 +973,15 @@ namespace UTJ
             var so = getLightmapSettings();
             var lightmapDirectionalMode = so.FindProperty("m_LightmapEditorSettings.m_LightmapsBakeMode");
             var foldout = new Foldout();
-            foldout.text = "Directional Mode : " + lightmapDirectionalMode.displayName;
+            foldout.text = "Directional Mode : ";
             foldout.Query<Toggle>().AtIndex(0).style.marginLeft = 0;
             foldout.value = true;
             parent.Add(foldout);
 
 
-            if (lightmapDirectionalMode.intValue == (int)LightmapsMode.CombinedDirectional)
+            if (LightmapEditorSettings.lightmapsMode == LightmapsMode.CombinedDirectional)
             {
+                foldout.text += "Directional";
 
                 bool isHaveDir = false;
                 foreach (LightmapData ld in LightmapSettings.lightmaps)
@@ -1001,6 +1014,9 @@ namespace UTJ
                     foldout.Add(label);
                     foldout.value = true;
                 }
+            } else
+            {
+                foldout.text += "Non-Directional";
             }
 
             {
@@ -1124,6 +1140,7 @@ namespace UTJ
                 label.style.color = Color.yellow;
                 foldout.Add(label);
                 label.text = "[警告]Indirect Samplesの値が100を超えています。";
+                foldout.value = true;
             }            
             {
                 var label = new Label();
