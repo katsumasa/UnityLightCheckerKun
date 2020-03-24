@@ -1,14 +1,21 @@
-﻿using System.Collections;
+﻿using System.Reflection;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+#if UNITY_2019_1_OR_NEWER
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
-using System.Reflection;
+#elif UNITY_2018_1_OR_NEWER
+using UnityEngine.Experimental.UIElements;
+using UnityEditor.Experimental.UIElements;
+#endif
+
 
 
 namespace UTJ
 {
+#if UNITY_2018_1_OR_NEWER
     // [概要] Light周りで問題になりそうな箇所をチェックするツールです。
     // By Katsumasa Kimura
     public class UnityLightCheckerKun : EditorWindow
@@ -46,6 +53,7 @@ namespace UTJ
 
         public void OnEnable()
         {
+#if UNITY_2019_1_OR_NEWER
             VisualElement root = rootVisualElement;
             var visualTree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/UnityLightCheckerKun/Editor/UI/UnityLightCheckerKun.uxml");
             VisualElement labelFromUXML = visualTree.CloneTree();
@@ -56,6 +64,15 @@ namespace UTJ
 
             var button = root.Query<ToolbarButton>().AtIndex(0);
             button.clicked += OnButtonClick;           
+
+#else
+            var root = UIElementsEntryPoint.GetRootVisualContainer(this);
+            root.AddStyleSheetPath("Assets/UnityLightCheckerKun/Editor/UI/UnityLightCheckerKun.uss");            
+            var button = new Button(OnButtonClick);
+            button.text = "Check";
+            button.style.color = Color.white;
+            root.Add(button);
+#endif
         }
 
 
@@ -78,8 +95,15 @@ namespace UTJ
 
         void OnButtonClick()
         {
-            var scrollView = rootVisualElement.Query<ScrollView>().AtIndex(0);
-            if(panel != null)
+#if UNITY_2019_1_OR_NEWER
+            var root = rootVisualElement;
+            var scrollView = root.Query<ScrollView>().AtIndex(0);
+#else
+            var root = UIElementsEntryPoint.GetRootVisualContainer(this);
+            var scrollView = root;
+#endif
+
+            if (panel != null)
             {
                 scrollView.Remove(panel);
             }
@@ -1423,6 +1447,7 @@ namespace UTJ
 
         void MeshRendererCheck(VisualElement parent)
         {
+#if UNITY_2019_1_OR_NEWER
             var meshRendererFoldout = new Foldout();
             meshRendererFoldout.name = "MeshRendererFoldout";
             meshRendererFoldout.Query<Toggle>().AtIndex(0).style.marginLeft = 0;
@@ -1479,10 +1504,12 @@ namespace UTJ
                     receiveGlobalIlluminationFoldot.text += "\n重要なオブジェクトにみLightmapのBake対象にしましょう。";
                     receiveGlobalIlluminationFoldot.text += "Scene内にある小さなオブジェクトはLightProbeを使用することを検討して下さい。";
                     receiveGlobalIlluminationFoldot.text += "Receive Global Illumination を LightProbe にすることによってLightProbeによってライティングされるようになり、LightmapのサイズとBake時間の削減が期待出来ます。";
+
                     receiveLightmapsMeshRenderers = new List<MeshRenderer>();
                     receiveLightProbesMeshRenderers = new List<MeshRenderer>();
                     foreach (var meshRenderer in meshRenderers)
                     {
+
                         if (meshRenderer.receiveGI == ReceiveGI.Lightmaps)
                         {
                             receiveLightmapsMeshRenderers.Add(meshRenderer);
@@ -1589,7 +1616,8 @@ namespace UTJ
 
                 }
             }
-
+#endif
         }
     }
+#endif
 }
