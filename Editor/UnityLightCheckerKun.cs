@@ -92,6 +92,16 @@ namespace UTJ
         }
 
 
+        Foldout CreateFoldout(string text)
+        {
+            var foldout = new Foldout();
+            foldout.Query<Toggle>().AtIndex(0).style.marginLeft = 0;
+            foldout.value = false;
+            foldout.text = text;
+            return foldout;
+        }
+
+
 
         void OnButtonClick()
         {
@@ -111,6 +121,7 @@ namespace UTJ
             scrollView.Add(panel);
 
             LightingWindow(panel);
+            QualitySettingsWindow(panel);
             LightCheck(panel);
             MeshRendererCheck(panel);            
         }
@@ -129,6 +140,260 @@ namespace UTJ
             foldout.value |= LightingMixedLighting(foldout);
             foldout.value |= LightingLightmappingSettings(foldout);
             
+            return foldout.value;
+        }
+
+
+        bool QualitySettingsWindow(VisualElement parent)
+        {
+            var foldout = CreateFoldout("QualitySettings");
+            parent.Add(foldout);
+            foldout.value |= QualitySettingsPixelLightCount(foldout);
+            foldout.value |= QualitySettingsRealtimeReflectionProbes(foldout);
+            foldout.value |= QualitySettingsShadowmask(foldout);
+            foldout.value |= QualitySettingsShadows(foldout);
+            foldout.value |= QualitySettingsShadowResolution(foldout);
+            foldout.value |= QualitySettingsShadowProjection(foldout);
+            foldout.value |= QualitySettingsShadowDistance(foldout);
+            foldout.value |= QualitySettingsShadowCascades(foldout);
+            return foldout.value;
+        }
+
+
+        bool QualitySettingsPixelLightCount(VisualElement parent)
+        {
+            var foldout = CreateFoldout("Pixel Light Count : ");
+            parent.Add(foldout);
+            foldout.text += QualitySettings.pixelLightCount;
+
+            var lights = new List<Light>((Light[])(Resources.FindObjectsOfTypeAll(typeof(Light))));
+            lights = lights.FindAll(light => light.gameObject.activeInHierarchy);
+            var pixelLights =  lights.FindAll(light => light.renderMode == LightRenderMode.ForcePixel);
+            // Middle品質の初期値が３
+            if (QualitySettings.pixelLightCount > 3)
+            {
+                var label = new Label();
+                label.style.color = Color.yellow;
+                foldout.Add(label);
+                foldout.value = true;
+                label.text = "[警告]pixelLightCountに大きな値が設定されています。";
+            }
+            if (pixelLights.Count > QualitySettings.pixelLightCount)
+            {
+                var label = new Label();
+                label.style.color = Color.yellow;
+                foldout.Add(label);
+                foldout.value = true;
+                label.text = "[警告]RenderModeにImportanが設定されている数(";
+                label.text += pixelLights.Count;
+                label.text += ")がPixel Light Countを超えています。";
+            }
+            {
+                var label = new Label();
+                label.text = "ForwardAdd Pass処理するライトの最大数を指定します。";
+                label.text += "\n最も明るいディレクショナルライトがFowardBase Passで処理され、それ以外のディレクショナルライトとスポットライト、ポイントライトがForwardAdd Passで処理するライトの対象となります。";
+                label.text += "\nForwardAdd Passに割り当てられなかったライトは明るいものから４個がFowardBase Passで補完情報として使用されます。";
+                label.text += "Pixel Lightの数はパフォーマンスに大きく影響を及ぼします。詳しくは下記のURLを参照して下さい。";
+                label.text += "\nhttps://docs.unity3d.com/ja/current/Manual/RenderTech-ForwardRendering.html";
+                foldout.Add(label);
+            }
+            return foldout.value;
+        }
+
+
+        bool QualitySettingsRealtimeReflectionProbes(VisualElement parent)
+        {
+            var foldout = CreateFoldout("Realtime Reflection Probes : ");
+            parent.Add(foldout);
+            foldout.text += QualitySettings.realtimeReflectionProbes;
+            var reflectionProbes = new List<ReflectionProbe>((ReflectionProbe[])(Resources.FindObjectsOfTypeAll<ReflectionProbe>()));
+            reflectionProbes = reflectionProbes.FindAll(reflectionProbe => reflectionProbe.gameObject.activeInHierarchy);
+            reflectionProbes = reflectionProbes.FindAll(reflectionProbe => reflectionProbe.mode == UnityEngine.Rendering.ReflectionProbeMode.Realtime);
+            if (QualitySettings.realtimeReflectionProbes)
+            {
+                if(reflectionProbes.Count == 0)
+                {
+                    var label = new Label();
+                    foldout.Add(label);
+                    label.style.color = Color.yellow;
+                    label.text = "[警告]Realtimeで更新を行うReflectionProbeがScene内に存在しません。";
+                    foldout.value = true;
+                } else
+                if(reflectionProbes.Count != 0)
+                {
+                    var label = new Label();
+                    foldout.Add(label);
+                    label.style.color = Color.yellow;
+                    label.text = "[警告]Realtimeで更新を行うReflectionProbeがScene内に存在します。";
+                    foldout.value = true;
+                }
+            }
+            {
+                var label = new Label();
+                foldout.Add(label);
+                label.text = "Reflection Probeを実行時に更新するか否かを指定します。";
+            }
+            return foldout.value;
+        }
+
+
+        bool QualitySettingsShadowmask(VisualElement parent)
+        {
+            var foldout = CreateFoldout("Shadowmask : ");
+            parent.Add(foldout);
+            foldout.text += QualitySettings.shadowmaskMode;
+            if(QualitySettings.shadowmaskMode == ShadowmaskMode.DistanceShadowmask)
+            {
+                if(Lightmapping.bakedGI == false)
+                {
+                    var label = new Label("[警告]Baked Global Illuminationが有効ではありません。");
+                    label.style.color = Color.yellow;
+                    foldout.Add(label);
+                    foldout.value = true;
+                }               
+                else
+                if(LightmapEditorSettings.mixedBakeMode != MixedLightingMode.Shadowmask)
+                {
+                    var label = new Label("[警告]Mixed LightingのLighting ModeがShadowmaskではありません。");
+                    label.style.color = Color.yellow;
+                    foldout.Add(label);
+                    foldout.value = true;
+                }
+            }
+            {
+                var label = new Label("Shadow Distanceに応じてShadowMaskとShadowMapを切り替えて使用するかを指定します。");
+                foldout.Add(label);
+            }
+            return foldout.value;
+        }
+
+
+        bool QualitySettingsShadows(VisualElement parent)
+        {
+            var foldout = CreateFoldout("Shadows : " + QualitySettings.shadows);
+            parent.Add(foldout);
+            if (QualitySettings.shadows == ShadowQuality.Disable)
+            {
+                var label = new Label("[警告]Shadowsの描画が無効なっています。");
+                foldout.Add(label);
+                label.style.color = Color.yellow;
+                foldout.value = true;
+            }
+            if(QualitySettings.shadows == ShadowQuality.All)
+            {
+                var label = new Label("[警告]Soft Shadowsが有効になっています。\nSoft Shadowが有効の場合、フィルタリング処理がかかり滑らかな表現になりますが、その分GPUの処理負荷がかかります。");
+                foldout.Add(label);
+                label.style.color = Color.yellow;
+                foldout.value = true;
+            }
+            {
+                var label = new Label("Shadowsの描画の有無及び描画時にフィルタリング処理を行うかを指定します。フィルタリング処理を行うことで輪郭部分が滑らかになりますが、その分GPUの負荷が高くなります。");
+                foldout.Add(label);
+            }
+            return foldout.value;
+        }
+
+
+        bool QualitySettingsShadowResolution(VisualElement parent)
+        {
+            var foldout = CreateFoldout("Shadow Resolution : " + QualitySettings.shadowResolution);
+            parent.Add(foldout);
+
+            if(QualitySettings.shadowResolution > ShadowResolution.Low)
+            {
+                var label = new Label("[警告]Shadow Resolutionに " + QualitySettings.shadowResolution + " より大きな解像度が設定されています。");
+                label.style.color = Color.yellow;
+                foldout.Add(label);
+                foldout.value = true;
+            }
+            {
+                var label = new Label("Shadowmapの解像度(にかかる係数)を指定します。");
+                label.text += "\n Shadowmapの解像度は画面の解像度、ライトの種類、及びこの値で決定されます。";
+                label.text += "\n Type :: Directional : x 1.9, Sopt : x 1, Point : x 0.5";
+                label.text += "\n Resolution ::  Low : x 1/4, Medium : x 1/2, Hight : x 1, Very Hight : x 2";
+                label.text += "\n ※Light側にShadowCustomResolutionの設定がある場合はそちらが使用されます。";
+                label.text += "\n 詳しくは下記をご確認下さい。";
+                label.text += "\n https://docs.unity3d.com/jp/460/Manual/ShadowSizeDetails.html";
+                foldout.Add(label);
+            }
+
+            return foldout.value;
+        }
+
+
+        bool QualitySettingsShadowProjection(VisualElement parent)
+        {
+            var foldout = CreateFoldout("Shadow Projection : " + QualitySettings.shadowProjection);
+            parent.Add(foldout);
+
+            if(QualitySettings.shadowProjection == ShadowProjection.StableFit)
+            {
+                if (QualitySettings.shadowCascades == 1)
+                {
+                    var label = new Label("[確認]StableFitが選択されていますが、ShaowCascadeが無効になっています。");
+                    foldout.Add(label);
+                }
+            }
+            {
+                var label = new Label("Shadowmapのサイズを決めるサイズの基準を指定します。CloseFitはカメラとオブジェクトの距離によってShadowmapの解像度が決定される為、カメラから近いオブジェクトの影の解像度が向上しますが、カメラのオブジェクトの距離が切り替わる際に影がちらつく場合があります。");
+                foldout.Add(label);
+            }
+            return foldout.value;
+        }
+
+
+        bool QualitySettingsShadowDistance(VisualElement parent)
+        {
+            var foldout = CreateFoldout("Shadowmask Distance : " + QualitySettings.shadowDistance);
+            parent.Add(foldout);
+            // 500以上は意味がないと記載されているのでそれを目安に
+            // https://docs.unity3d.com/jp/460/Manual/Shadows.html
+            if (QualitySettings.shadowDistance > 500.0f)
+            {
+                var label = new Label("[警告] ShadowDistanceに500以上の値が設定されています。一般的には500m以上は意味がないと言われていますので出来るだけ小さな値になるように調整して下さい。");
+                foldout.Add(label);
+            }
+            {
+                var label = new Label("Realtime描画されるShadowの距離を指定します。Distance Shadowmaskの場合はこの距離以上の影はShadowmaskで描画されます。");
+                foldout.Add(label);
+            }
+            return foldout.value;
+        }
+
+
+        bool QualitySettingsShadowCascades(VisualElement parent)
+        {
+            string[] dispNames = {
+                " ",
+                "No Cascades",
+                "Two Cascades",
+                "",
+                "Four Cascades",
+            };
+
+            var foldout = CreateFoldout("Shadowmask Cascades : " + dispNames[QualitySettings.shadowCascades]);
+            parent.Add(foldout);
+            bool isMobile = false;
+            if( EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android ||
+                EditorUserBuildSettings.activeBuildTarget == BuildTarget.iOS)
+            {
+                isMobile = true;
+            }
+
+            if (QualitySettings.shadowCascades > 1)
+            {
+                if (isMobile)
+                {
+                    var label = new Label("[警告]Shadow Cascadesが有効になっていますが、モバイルのGPUでは対応していない可能性があります。");
+                    label.style.color = Color.yellow;
+                    foldout.Add(label);
+                }
+            }
+            {
+                var label = new Label("Shadow Cacadeを有効にするか無効にするか、有効にした場合何分割するかを指定します。詳細は下記のURLをご確認下さい。\n https://docs.unity3d.com/ja/2018.4/Manual/DirLightShadows.html");
+                foldout.Add(label);
+            }
+
             return foldout.value;
         }
 
@@ -1271,11 +1536,8 @@ namespace UTJ
                     l.text = light.name;
                     f.Add(l);
                 }
-
                 foldout.value = true;
             }
-
-
             return foldout.value;
         }
 
@@ -1320,11 +1582,9 @@ namespace UTJ
                 {
                     i = 2;
                 }
-
                 label.text = light.name;
                 foldouts[i].Add(label);
-            }
-          
+            }          
             return foldout.value;
         }
 
@@ -1353,22 +1613,18 @@ namespace UTJ
 
             foreach (var light in lights)
             {
-
                 if ((light.type == UnityEngine.LightType.Point || light.type == UnityEngine.LightType.Spot) && light.bounceIntensity > 0f)
                 {
                     var label = new Label();
                     label.text = light.name + ":" + light.bounceIntensity;
                     sub1.Add(label);
                 }
-
                 if(light.bounceIntensity > 1f)
                 {
                     var label = new Label();
                     label.text = light.name + ":" + light.bounceIntensity;
                     sub2.Add(label);
                 }
-
-
             }
             if(sub1.childCount != 0)
             {                
@@ -1439,9 +1695,6 @@ namespace UTJ
             {
                 foldout.text += " : " + foldouts[i].childCount;
             }
-
-
-
         }
 
 
